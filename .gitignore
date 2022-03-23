@@ -1,0 +1,4 @@
+*.sw?
+lnInclude
+tags
+linux*

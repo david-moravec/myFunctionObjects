@@ -1,0 +1,3 @@
+dissipation.C
+
+LIB = $(FOAM_USER_LIBBIN)/libMyFunctionObjects
