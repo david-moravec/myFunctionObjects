@@ -25,9 +25,8 @@ License
 
 #include "dissipation.H"
 #include "volFields.H"
+#include "fvcGrad.H"
 #include "surfaceFields.H"
-#include "kinematicMomentumTransportModel.H"
-#include "fluidThermoMomentumTransportModel.H"
 #include "addToRunTimeSelectionTable.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
@@ -76,7 +75,7 @@ bool Foam::functionObjects::dissipation::read
     fvMeshFunctionObject::read(dict);
     writeLocalObjects::read(dict);
 
-    phaseName_ = dict.lookupOrDefault<word>("phase", word::null);
+    //phaseName_ = dict.lookupOrDefault<word>("phase", word::null);
 
     return true;
 }
@@ -84,45 +83,33 @@ bool Foam::functionObjects::dissipation::read
 
 bool Foam::functionObjects::dissipation::execute()
 {
-    const word fieldName(IOobject::groupName(type(), phaseName_));
-
-    typedef compressibleMomentumTransportModel cmpModel;
-    typedef incompressibleMomentumTransportModel icoModel;
-
-    const word momentumTransportModelName
-    (
-        IOobject::groupName(momentumTransportModel::typeName, phaseName_)
-    );
-
-    if (mesh_.foundObject<cmpModel>(momentumTransportModelName))
+    if(!isA<fvMesh>(mesh_))
     {
-        const cmpModel& model =
-            mesh_.lookupObject<cmpModel>(momentumTransportModelName);
-
-        return store(fieldName, model.devTau());
+        WarningIn
+        (
+            "dissipation needs fvMesh, deactivating"
+        );
+        return true;
     }
-    else if (mesh_.foundObject<icoModel>(momentumTransportModelName))
-    {
-        const icoModel& model =
-            mesh_.lookupObject<icoModel>(momentumTransportModelName);
 
-        return store(fieldName, model.devSigma());
-    }
-    else
-    {
-        FatalErrorInFunction
-            << "Unable to find compressible turbulence model "
-            << momentumTransportModelName << " in the database"
-            << exit(FatalError);
+    std::cout << "ekk\n";
+    volVectorField U = mesh_.lookupObject<volVectorField>("U");
 
-        return false;
-    }
+    volScalarField nut = mesh_.lookupObject<volScalarField>("nut");
+    volScalarField nu = mesh_.lookupObject<volScalarField>("nu");
+
+    volSymmTensorField shearRate = dev(twoSymm(fvc::grad(U)));
+    
+    store("R", nut * shearRate);
+    store("Tau", nu * shearRate);
+
+    return true;
 }
 
 
 bool Foam::functionObjects::dissipation::write()
 {
-    return writeLocalObjects::write();
+    return true
 }
 
 
