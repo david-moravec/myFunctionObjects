@@ -52,10 +52,27 @@ Foam::functionObjects::dissipation::dissipation
 :
     fvMeshFunctionObject(name, runTime, dict),
     writeLocalObjects(obr_, false),
-    phaseName_(word::null)
+    phaseName_(word::null),
+    volScalarField dissipation_
+    (
+        IOobject
+        (
+            typeName,
+            mesh_.time().timeName(),
+            mesh_,
+            IOobject::READ_IF_PRESENT,
+            IOobject::AUTO_WRITE,
+            true
+        ),
+        mesh_,
+        dimensionedScalar(dimset(0 2 -2 0 0 0 0), 0), 
+    )
+
 {
     read(dict);
     resetLocalObjectName(IOobject::groupName(type(), phaseName_));
+
+
 }
 
 
@@ -99,6 +116,8 @@ bool Foam::functionObjects::dissipation::execute()
     volScalarField nu = mesh_.lookupObject<volScalarField>("nu");
 
     volSymmTensorField shearRate = dev(twoSymm(fvc::grad(U)));
+
+    dissipation_ = nu * shearRate;
     
     store("R", nut * shearRate);
     store("Tau", nu * shearRate);
@@ -109,7 +128,7 @@ bool Foam::functionObjects::dissipation::execute()
 
 bool Foam::functionObjects::dissipation::write()
 {
-    return true
+    return true;
 }
 
 

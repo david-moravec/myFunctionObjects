@@ -63,6 +63,7 @@ class dissipation
 
         //- The name of the phase
         word phaseName_;
+        volScalarField dissipation_;
 
 
 public:
